@@ -11,7 +11,7 @@ library(plyr)
 library(ggplot2)
 library(reshape2)
 theme_set(theme_bw())
-df = read.csv("CDM_CDIs.csv") 
+df = read.csv("data/CDM_CDIs.csv") 
 
 ```
 
@@ -22,7 +22,7 @@ freqs <- ddply(df, .(Word), summarise, count=length(Word))
 freqs$Word <- factor(freqs$Word, levels=with(freqs, Word[order(count, Word, decreasing = TRUE)]))
 q <- qplot(Word, count, geom="bar", stat="identity", 
       data=subset(freqs, count>5))
-q + theme(axis.text.x = element_text(angle=90, hjust = 1))
+q + theme(axis.text.x = element_text(angle=90, hjust = 1, vjust=.5))
 ```
 
 #Freqs of first words props 
@@ -32,7 +32,8 @@ freqs$Word <- factor(freqs$Word, levels=with(freqs, Word[order(count, Word, decr
 freqs$prop <- freqs$count/sum(freqs$count)
 q <- qplot(Word, prop, geom="bar", stat="identity", 
       data=subset(freqs, count>5))
-q + theme(axis.text.x = element_text(angle=90, hjust = 1))
+q + theme(axis.text.x = element_text(angle=90, hjust = 1, vjust=.5)) + 
+  ylab("Proportion of Total Words")
 ```
 ---
 #Prop of first word by gender 
@@ -49,7 +50,8 @@ q <- qplot(Word, prop, fill=gender,
            geom="bar",
            stat="identity",
            data=subset(freqs, total.count>5 & gender!=""))
-q + theme(axis.text.x = element_text(angle=90, hjust = 1))
+q + theme(axis.text.x = element_text(angle=90, hjust = 1, vjust=.5)) + 
+  ylab("Proportion of Total Words")
 
 ```
 ---
@@ -62,7 +64,8 @@ freqs$CDI_category <- factor(freqs$CDI_category,
                                  CDI_category[order(count, CDI_category, decreasing = TRUE)]))
 q <- qplot(CDI_category, count, geom="bar", stat="identity", 
       data=subset(freqs))
-q + theme(axis.text.x = element_text(angle=90, hjust = 1))
+q + theme(axis.text.x = element_text(angle=90, hjust = 1, vjust = .5)) + 
+  ylab("Count of Total Words")
 
                
 ```
@@ -76,7 +79,8 @@ freqs$CDI_category <- factor(freqs$CDI_category,
 freqs$prop <- freqs$count/sum(freqs$count)
 
 q <- qplot(CDI_category, prop, geom = "bar", stat="identity", data=subset(freqs, count>1))+theme_bw()
-q + theme(axis.text.x = element_text(angle=90, hjust = 1))
+q + theme(axis.text.x = element_text(angle=90, hjust = 1, vjust=.5)) +
+  ylab("Proportion of Total Words")
 
 
 ```
@@ -105,6 +109,7 @@ q + theme(axis.text.x = element_text(angle=90, hjust = 1))
 ---
 #Proportions by gender 
 ```{r}
+quartz()
 freqs <- ddply(df, .(CDI_category, gender), summarise, count=length(CDI_category))
 freqs <- ddply(freqs, .(CDI_category), mutate, total.count=sum(count))
 freqs <- ddply(freqs, .(gender), mutate, prop = count/sum(count))
@@ -118,32 +123,86 @@ freqs$CDI_category <- factor(freqs$CDI_category,
 q <- qplot(CDI_category, prop, fill=gender, 
       position="dodge", geom="bar", stat="identity", data=subset(freqs, total.count>1 & gender!=""))
                                                                   
-q + theme(axis.text.x = element_text(angle=90, hjust = 1))
+q + theme(axis.text.x = element_text(angle=90, hjust = 1, vjust=.5)) + 
+  ylab("Proportion of Total Words") + 
+  xlab("CDI Category")
 
 ```
+
+----
+Age by gender
+
+```{r}
+quartz()
+mss <- aggregate(Word ~ Age_utterance + gender, df, length)
+ms <- ddply(mss, .(gender), function(x) {
+            x$prop = x$Word / sum(x$Word)
+            return(x) })
+            
+qplot(Age_utterance, prop, fill=gender, geom="bar", stat="identity",
+      position="dodge", 
+      data=subset(ms,gender!="" & 
+                    Age_utterance!="" & 
+                    Age_utterance!="dontremember")) + 
+  ylab("Proportion of Children") + 
+  xlab("Age at time of first word")
+
+```
+
+
 --- 
 #Age Split - 10m against everyone else 
 ```{r}
-df$ten <- df$Age_utterance == "10mOrBefore"
+quartz()
+
+df$Age <- factor(c("< 10m","> 10m")[(1 - as.numeric(df$Age_utterance == "10mOrBefore"))+1])
 #breaking up each age group individually, just in case we want to do something with it later 
 df$eleven <- df$Age_utterance == "11m"
 df$twelve <- df$Age_utterance == "12m"
 df$thirteen <- df$Age_utterance == "13m"
 df$fourteen <- df$Age_utterance == "14mOrLater"
 
-freqs <- ddply(df, .(CDI_category,ten), summarise, count=length(CDI_category))
+freqs <- ddply(df, .(CDI_category,Age), summarise, count=length(CDI_category))
 freqs <- ddply(freqs, .(CDI_category), mutate, total.count = sum(count))
-freqs <- ddply(freqs, .(ten), mutate, prop = count / sum(count))
+freqs <- ddply(freqs, .(Age), mutate, prop = count / sum(count))
 
 freqs$CDI_category <- factor(freqs$CDI_category,
                              levels=unique(with(freqs, 
                                                 CDI_category[order(total.count, CDI_category, decreasing = TRUE)])))
 freqs$prop <- freqs$count/sum(freqs$count)
 
-q <- qplot(CDI_category, prop, fill=ten, 
+
+qplot(CDI_category, prop, fill=Age, 
       position="dodge",
       geom="bar", stat="identity", 
-      data=subset(freqs,total.count>1))
-q + theme(axis.text.x = element_text(angle=90, hjust = 1))
+      data=subset(freqs,total.count>1)) + theme(axis.text.x = element_text(angle=90, hjust = 1, vjust=.5))+ 
+  ylab("Proportion of Total Words") + 
+  xlab("CDI Category")
+
 ```
 
+--- 
+do people report ages differently if their kids are older? 
+
+```{r}
+quartz()
+df$Age_current <- factor(df$Age_current, levels=c("0to3y","4to6y","7to12y","13plusy"))
+df$Age_current <- revalue(df$Age_current, c("0to3y"="0 - 3 years", 
+                                            "4to6y"="4 - 6 years", 
+                                            "7to12y"="7 - 12 years",
+                                            "13plusy"="13+ years"))
+
+
+mss <- aggregate(Word ~ Age_utterance + Age_current, df, length)
+ms <- ddply(mss, .(Age_current), function(x) {
+            x$prop = x$Word / sum(x$Word)
+            return(x) })
+
+qplot(Age_utterance, prop, fill=Age_current, geom="bar", stat="identity",
+      position="dodge", 
+      data=subset(ms,Age_current!="" & 
+                    Age_utterance!="" & 
+                    Age_utterance!="dontremember")) + 
+  ylab("Proportion of Children") + 
+  xlab("Age at time of first word")
+```
