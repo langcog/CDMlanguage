@@ -78,9 +78,9 @@ freqs$CDI_category <- factor(freqs$CDI_category,
                                  CDI_category[order(count, CDI_category, decreasing = TRUE)]))
 freqs$prop <- freqs$count/sum(freqs$count)
 
-q <- qplot(CDI_category, prop, geom = "bar", stat="identity", data=subset(freqs, count>1))+theme_bw()
-q + theme(axis.text.x = element_text(angle=90, hjust = 1, vjust=.5)) +
-  ylab("Proportion of Total Words")
+quartz()
+qplot(CDI_category, prop, geom = "bar", stat="identity", data=subset(freqs, count>1))+theme_bw() + theme(axis.text.x = element_text(angle=90, hjust = 1, vjust=.5)) +
+  ylab("Proportion of Total Words") + xlab("CDI Category")
 
 
 ```
